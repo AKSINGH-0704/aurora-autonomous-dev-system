@@ -6,15 +6,15 @@
 
 ### Autonomous Development System
 
-*Deterministic execution pipeline — structured planning, constrained generation, iterative validation, artifact-driven orchestration.*
+*One prompt. Four agents. Zero human intervention. A working application.*
 
 <br/>
 
-[![Claude Code](https://img.shields.io/badge/Claude_Code-Agent_System-D97706?style=flat-square)](https://claude.ai/code)&nbsp;
-[![Next.js](https://img.shields.io/badge/Next.js-14.2-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)&nbsp;
+[![Claude Code](https://img.shields.io/badge/Built_with-Claude_Code-7A52CC?style=flat-square&logo=anthropic&logoColor=white)](https://claude.ai/code)&nbsp;
+[![Next.js](https://img.shields.io/badge/Next.js-14.2.15-000000?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)&nbsp;
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)&nbsp;
 [![Prisma](https://img.shields.io/badge/Prisma-SQLite-2D3748?style=flat-square&logo=prisma&logoColor=white)](https://prisma.io)&nbsp;
-[![Multi-Agent](https://img.shields.io/badge/Pipeline-4--Phase_Multi--Agent-6366F1?style=flat-square)](https://github.com/AKSINGH-0704/aurora-autonomous-dev-system)&nbsp;
+[![Context7](https://img.shields.io/badge/MCP-Context7-00E5FF?style=flat-square)](https://github.com/AKSINGH-0704/aurora-autonomous-dev-system)&nbsp;
 [![Self-Healing](https://img.shields.io/badge/Validation-Self--Healing_Loop-10B981?style=flat-square)](https://github.com/AKSINGH-0704/aurora-autonomous-dev-system)
 
 <br/>
@@ -28,7 +28,7 @@
 
 <br/>
 
-[System Flow](#system-flow) &nbsp;·&nbsp; [Agent Pipeline](#agent-pipeline) &nbsp;·&nbsp; [Design Decisions](#design-decisions) &nbsp;·&nbsp; [Run It](#quickstart)
+[System Flow](#system-flow) &nbsp;·&nbsp; [Agent Pipeline](#agent-pipeline) &nbsp;·&nbsp; [What Makes It Different](#what-makes-aurora-different) &nbsp;·&nbsp; [Run It](#usage)
 
 <br/>
 
@@ -38,11 +38,11 @@
 
 <br/>
 
-## What AURORA Is
+## The Problem With AI Code Generators
 
-AURORA is a structured execution pipeline that transforms a single prompt into a fully compiled, seeded, and documented application — without any user input after the initial trigger. It is not a code suggestion tool. It is a four-phase agent system where every phase consumes structured artifacts from the previous phase, operates within explicit constraints, and must pass validation before the next phase begins.
+Most AI coding tools operate on a "generate and hope" model. They output thousands of lines of code, hallucinate dependencies, produce files that reference imports that don't exist, and leave the user to debug the mess. The code looks right. It just doesn't run.
 
-The problem it solves: single-shot LLM code generation produces unverified output — mismatched imports, broken type chains, unrun builds. AURORA treats software generation as a compilation target, not a text generation task. Completion is only declared when `npm run build` exits with code 0.
+AURORA treats every line of generated code as untrusted until proven by the compiler. The system doesn't consider a task complete until `npm run build` exits with code 0. If it doesn't — it reads the error, opens the specific broken file, applies a targeted fix, and tries again. Completion is earned, not declared.
 
 <br/>
 
@@ -53,7 +53,7 @@ graph TD
     A["Single User Prompt"] --> B["PHASE 1 — PLAN\nPlanner Agent"]
     B --> C["BLUEPRINT.md\nBinding contract for all phases"]
     C --> D["PHASE 2 — BUILD\nBuilder Agent"]
-    D --> E["app/ — Full Next.js application\nTypescript · Prisma · Tailwind"]
+    D --> E["app/ — Full Next.js application\nTypeScript · Prisma · Tailwind"]
     E --> F["PHASE 3 — VALIDATE\nValidator Agent"]
     F --> G{"Build passes?"}
     G -->|Yes| H["PHASE 4 — FINALIZE\nFinalizer Agent"]
@@ -86,20 +86,18 @@ Each phase operates as an isolated agent. Outputs from one phase become the stru
 
 | Phase | Agent | Consumes | Produces |
 |:-----:|:------|:---------|:---------|
-| 01 | **Planner** | User prompt | `BLUEPRINT.md` — app overview, schema, API routes, pages, file tree |
-| 02 | **Builder** | `BLUEPRINT.md` | `app/` — scaffolded Next.js app, all routes, components, DB schema |
+| 01 | **Planner** | User prompt | `BLUEPRINT.md` — schema, routes, pages, file tree |
+| 02 | **Builder** | `BLUEPRINT.md` | `app/` — full Next.js app, all routes and components |
 | 03 | **Validator** | `app/` source tree | Verified build OR `KNOWN_ISSUES.md` |
-| 04 | **Finalizer** | Validated build | Seed data, `app/README.md`, build confirmation, completion summary |
+| 04 | **Finalizer** | Validated build | Seed data, `app/README.md`, completion summary |
 
 </div>
 
-**The binding contract:** `BLUEPRINT.md` is the single source of truth. If a feature is not in the blueprint, it does not get built. No additions, no omissions, no improvisation between phases.
+**The binding contract:** `BLUEPRINT.md` is the single source of truth. If a feature is not in the blueprint, it does not get built — no additions, no omissions, no improvisation between phases.
 
 <br/>
 
 ## Self-Healing Validation Loop
-
-The validator phase is where the system proves it actually works. It does not declare completion — it proves it.
 
 ```mermaid
 sequenceDiagram
@@ -128,36 +126,32 @@ sequenceDiagram
     end
 ```
 
-**Surgical correction:** The validator reads only the file named in the error trace — not the full codebase. It fixes the specific issue without refactoring surrounding code. This keeps retry behavior fast and targeted.
-
-**Bounded recovery:** 3 attempts per failing command. After that, errors are logged to `KNOWN_ISSUES.md` and execution continues. The system never loops indefinitely — it acknowledges failure explicitly and moves forward.
+The validator reads only the file named in the error trace — not the full codebase. It fixes the specific issue without touching surrounding code. After 3 failed attempts per command, errors are logged to `KNOWN_ISSUES.md` and execution continues. The system never loops indefinitely — it acknowledges failure and moves forward.
 
 <br/>
 
-## Design Decisions
+## What Makes AURORA Different
 
-Every constraint in this system exists for a reason.
+**Blueprint as binding contract**
+The Planner generates a structured `BLUEPRINT.md` defining every database table, API route, frontend page, and file path before a single line of code is written. The Builder implements it exactly. This eliminates hallucinated features, mismatched schemas, and missing dependencies between planning and implementation.
 
-<div align="center">
+**Self-healing validation**
+The Validator doesn't report errors — it fixes them. It reads `stderr`, identifies the exact file and line from the stack trace, opens only that file, applies the minimal fix, and re-runs. Most systems crash on first error. AURORA corrects itself.
 
-| Decision | Reasoning |
-|:---------|:----------|
-| **Blueprint as binding contract** | Eliminates scope drift between agents. No phase can add features not specified — prevents hallucinated routes, mismatched schemas, and inter-agent inconsistency |
-| **Fixed tech stack** | Deliberating on technology per project introduces non-determinism. A fixed stack makes build error patterns predictable and the validator's correction patterns learnable |
-| **`cd app && <command>` chaining** | Claude Code executes each shell command in an isolated stateless subshell — `cd` does not persist between commands. Every command must carry its own directory context |
-| **No `npm run dev` in pipeline** | Persistent servers hang the pipeline indefinitely. The build target is a verifiable exit code, not a running process |
-| **Max 3 retries then log** | Infinite retry loops are a failure mode, not a recovery strategy. `KNOWN_ISSUES.md` is honest failure acknowledgment — the system knows what it couldn't fix |
-| **No user clarification** | Ambiguities are resolved using reasonable defaults and domain research. Every decision is made forward — the pipeline never pauses |
-| **No placeholder code** | Every line generated must be functional. `// TODO`, `// ...`, and stub functions invalidate the validation loop — they pass the compiler but break the application |
-| **Post-split normalization** | Scaling parameters computed on training partition only — prevents test distribution leaking into feature scaling |
+**Stateless shell awareness**
+Claude Code runs each bash command in an isolated subshell where `cd` does not persist between calls. AURORA is engineered around this constraint — every command is explicitly chained with `cd app &&` to guarantee correct execution regardless of shell state.
 
-</div>
+**Domain-aware planning**
+The Planner integrates Context7 MCP to research domain-specific patterns before generating the blueprint. When building a medical or financial application, it looks up best practices first — it doesn't guess.
+
+**Graceful failure acknowledgment**
+If validation cannot resolve an issue after 3 attempts, the error is logged to `KNOWN_ISSUES.md` and the pipeline proceeds. The system completes predictably — it never hangs, never silently fails, and never pretends an unresolved issue doesn't exist.
 
 <br/>
 
 ## Dual-Layer Architecture
 
-AURORA operates across two distinct environments. Conflating them degrades architectural clarity.
+AURORA operates across two distinct environments.
 
 <div align="center">
 
@@ -168,8 +162,8 @@ AURORA operates across two distinct environments. Conflating them degrades archi
 | Language | Agent instructions + bash | TypeScript (strict mode) |
 | State | Stateless — chained commands | Persistent — SQLite via Prisma |
 | Validation target | Phase handshake completion | `npm run build` exit code 0 |
-| Failure handling | Phase retry + `KNOWN_ISSUES.md` | TypeScript compiler errors |
-| Artifact produced | `BLUEPRINT.md`, phase outputs | `app/` — full working application |
+| Failure handling | Retry + `KNOWN_ISSUES.md` | TypeScript compiler errors |
+| Artifact produced | `BLUEPRINT.md`, phase outputs | `app/` — working application |
 
 </div>
 
@@ -181,33 +175,13 @@ AURORA operates across two distinct environments. Conflating them degrades archi
 
 | Constraint | Purpose |
 |:-----------|:--------|
-| No placeholder code | Every generated line must be functional and compilable |
+| No placeholder code | Every generated line must be functional — no `// TODO`, no stubs |
 | No validation skipping | Each phase must complete before the next begins |
-| No uncontrolled file generation | Only files specified in `BLUEPRINT.md` get created |
+| No uncontrolled file generation | Only files in `BLUEPRINT.md` get created |
 | No persistent server execution | Prevents pipeline deadlock from hanging processes |
 | No inter-phase reinterpretation | Agents consume artifacts — they do not re-derive requirements |
-| Bounded retry execution | 3 attempts per command — prevents runaway correction loops |
-| Stateless shell handling | All commands execute with explicit `cd app &&` path chaining |
-
-</div>
-
-<br/>
-
-## What This System Produces
-
-<div align="center">
-
-| Output | Description |
-|:-------|:------------|
-| `BLUEPRINT.md` | Structured app plan — schema, routes, pages, file tree |
-| `app/` | Complete Next.js 14 application, scaffolded and wired |
-| `app/prisma/schema.prisma` | Database schema matching blueprint exactly |
-| `app/src/app/api/` | All API route handlers |
-| `app/src/app/` + `components/` | All frontend pages and React components |
-| `app/prisma/seed.ts` | Realistic seed data — minimum 5 records per table |
-| `app/README.md` | Project documentation with exact setup commands |
-| `KNOWN_ISSUES.md` | Honest log of unresolved build issues (if any) |
-| Completion summary | Build confirmation with startup command |
+| Bounded retry execution | 3 attempts per command — no runaway correction loops |
+| Stateless shell handling | All commands use explicit `cd app &&` path chaining |
 
 </div>
 
@@ -229,56 +203,56 @@ AURORA operates across two distinct environments. Conflating them degrades archi
 
 <br/>
 
-## Fixed Tech Stack
-
-Every project AURORA generates uses this exact stack. No deliberation, no variation.
+## What AURORA Produces
 
 <div align="center">
 
-| Layer | Technology | Reason Fixed |
-|:------|:-----------|:-------------|
-| Framework | Next.js 14.2.15 (App Router) | Predictable scaffold, known error surface |
-| Language | TypeScript (strict mode) | Compiler errors are catchable in the validation loop |
-| Styling | Tailwind CSS | No separate CSS files — reduces build surface area |
-| ORM | Prisma + SQLite | Zero-config database, schema-first, generatable client |
-| Package manager | npm | Lockfile consistency across runs |
-| Init command | `create-next-app@14.2.15` | Pinned version — no scaffold variability |
+| Output | Description |
+|:-------|:------------|
+| `BLUEPRINT.md` | Structured app plan — schema, routes, pages, file tree |
+| `app/` | Complete Next.js 14 application, scaffolded and wired |
+| `app/prisma/schema.prisma` | Database schema matching blueprint exactly |
+| `app/src/app/api/` | All API route handlers |
+| `app/src/app/` + `components/` | All frontend pages and components |
+| `app/prisma/seed.ts` | Realistic seed data — minimum 5 records per table |
+| `app/README.md` | Project documentation with exact setup commands |
+| `KNOWN_ISSUES.md` | Honest log of unresolved build issues (if any) |
 
 </div>
 
 <br/>
 
-## Engineering Takeaways
-
-What building this system revealed — not goals, but outcomes:
-
-- Artifact contracts between phases eliminated the most common failure mode in LLM code generation: context drift causing mismatched assumptions between planning and implementation
-- Bounded retry semantics with explicit failure logging produced more reliable outputs than open-ended correction loops — the system completes predictably
-- Stateless shell execution was a non-obvious constraint that required a specific architectural solution (`cd app && <command>`) — not all agentic environments behave like persistent terminals
-- TypeScript strict mode functions as a secondary validator — type errors surfaced in Phase 3 that would have been silent runtime failures in a loosely-typed setup
-- Fixing the tech stack per-run reduced error entropy significantly — the validator encounters the same error patterns across projects, making corrections more accurate over time
-
-<br/>
-
-## Quickstart
-
-AURORA runs inside Claude Code. No setup beyond opening the repo.
+## Usage
 
 ```bash
-# 1. Open in Claude Code
-# 2. Type your prompt — one sentence describing the app you want
+git clone https://github.com/AKSINGH-0704/aurora-autonomous-dev-system.git
+cd aurora-autonomous-dev-system
+claude
+```
 
-# Example:
-"Build a task management app where users can create projects,
-add tasks with due dates and priorities, and mark them complete."
+Then enter your prompt:
 
-# AURORA handles everything from here.
-# Do not interrupt. When complete, run:
+```
+Build a role-based telemedicine portal where doctors can manage appointments
+and patients can securely submit medical histories, with a dashboard
+showing appointment statistics and status tracking.
+```
 
+AURORA handles everything from here. Typical execution: ~9 minutes from prompt to working application. Do not interrupt. When complete, run the startup command from the completion summary:
+
+```bash
 cd app && npm install && npx prisma db push && npx prisma db seed && npm run dev
 ```
 
-AURORA makes all architectural decisions autonomously. It will not ask for clarification. When the pipeline completes, the output directory contains a running application.
+<br/>
+
+## Engineering Takeaways
+
+- Artifact contracts between phases eliminated the most common failure mode in LLM code generation — context drift causing mismatched assumptions between planning and implementation
+- Bounded retry semantics with explicit failure logging produced more reliable pipeline completion than open-ended correction loops
+- Stateless shell execution was a non-obvious constraint requiring a specific architectural solution — not all agentic environments behave like persistent terminals
+- TypeScript strict mode functions as a secondary validator — type errors surfaced in Phase 3 that would have been silent runtime failures in a loosely-typed setup
+- Fixing the tech stack per-run reduced error entropy significantly — the validator encounters the same error patterns across projects, making corrections more accurate
 
 <br/>
 
@@ -290,13 +264,19 @@ AURORA makes all architectural decisions autonomously. It will not ask for clari
 ```
 aurora-autonomous-dev-system/
 │
-├── claude.md              # AURORA system instructions — the agent pipeline definition
+├── claude.md                        # Master orchestrator — pipeline logic and hard constraints
+├── README.md
 │
 └── .claude/
-    └── settings.json      # Claude Code agent configuration
+    ├── settings.json                # Permissions, auto-approvals, MCP configuration
+    └── skills/
+        ├── 01-planner/SKILL.md      # Requirement analysis → BLUEPRINT.md
+        ├── 02-builder/SKILL.md      # Full-stack code generation from blueprint
+        ├── 03-validator/SKILL.md    # Self-healing build validation loop
+        └── 04-finalizer/SKILL.md    # Seed data, documentation, final verification
 ```
 
-**How it works:** `claude.md` is loaded by Claude Code as the agent's operating instructions. When you trigger AURORA with a prompt, the agent reads these instructions and executes the 4-phase pipeline. All generated output — `BLUEPRINT.md`, `app/`, `KNOWN_ISSUES.md` — is written to the working directory at runtime.
+No application code lives in this repository. Every application is generated autonomously at runtime.
 
 </details>
 
@@ -310,11 +290,13 @@ aurora-autonomous-dev-system/
 
 Built by **[AKSINGH-0704](https://github.com/AKSINGH-0704)**
 
-*One prompt in. Working application out.*
+*AURORA doesn't generate code. It engineers software.*
 
 <br/>
 
 ![MIT License](https://img.shields.io/badge/License-MIT-30363d?style=flat-square)
+
+**Built for:** Claude Builders Club × APOGEE 2026
 
 <br/>
 
